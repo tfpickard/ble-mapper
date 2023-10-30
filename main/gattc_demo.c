@@ -34,6 +34,8 @@
 
 #include "freertos/FreeRTOS.h"
 
+#include "wifi.h"
+
 #define GATTC_TAG "GATTC_DEMO"
 #define REMOTE_SERVICE_UUID        0x00FF
 #define REMOTE_NOTIFY_CHAR_UUID    0xFF01
@@ -72,8 +74,8 @@ static esp_ble_scan_params_t ble_scan_params = {
     .scan_type              = BLE_SCAN_TYPE_ACTIVE,
     .own_addr_type          = BLE_ADDR_TYPE_PUBLIC,
     .scan_filter_policy     = BLE_SCAN_FILTER_ALLOW_ALL,
-    .scan_interval          = 0x50,
-    .scan_window            = 0x30,
+    .scan_interval          = 0x2000,
+    .scan_window            = 0x1500,
     .scan_duplicate         = BLE_SCAN_DUPLICATE_DISABLE
 };
 
@@ -349,6 +351,7 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
     case ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT: {
         //the unit of the duration is second
         uint32_t duration = 30;
+        ESP_LOGI(GATTC_TAG, "scan start");
         esp_ble_gap_start_scanning(duration);
         break;
     }
@@ -409,6 +412,7 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
                     if (connect == false) {
                         connect = true;
                         ESP_LOGI(GATTC_TAG, "connect to the remote device.");
+        ESP_LOGI(GATTC_TAG, "scan stop");
                         esp_ble_gap_stop_scanning();
                         esp_ble_gattc_open(gl_profile_tab[PROFILE_A_APP_ID].gattc_if, scan_result->scan_rst.bda, scan_result->scan_rst.ble_addr_type, true);
                     }
@@ -544,12 +548,15 @@ void app_main(void)
         ESP_LOGE(GATTC_TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
     }
 
+    esp_err_t rc =start_wifi();
     for(;;) {
         size_t iter = 0;
         void *item;
+        int n=0;
+        ESP_LOGI("map", "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
         while (hashmap_iter(map, &iter, &item)) {
             const struct bledev_s  *bledev = item;
-            ESP_LOGI("map", "name: %s %d | age: %d | count = %lu", bledev->name, (int)bledev->name_len, bledev->age, bledev->count);
+            ESP_LOGI("map", "--->>>     name: %s %d | age: %d | count = %lu", bledev->name, (int)bledev->name_len, bledev->age, bledev->count);
             // for(int i=0; i<bledev->name_len; i++) {
             //     printf("%02x ", bledev->name[i]);
             // }
@@ -560,9 +567,10 @@ void app_main(void)
             // printf("\n");
             // esp_log_buffer_char("map", bledev->name, bledev->name_len);
             // esp_log_buffer_hex("map", bledev->name, bledev->name_len);
+            n++;
 
         }
-        ESP_LOGI("map", "------------------------");
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        ESP_LOGI("map", "^^^^^^^^^^^ %d ^^^^^^^^^^^^^^^^^^^\n\n", n);
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
     }
 }
